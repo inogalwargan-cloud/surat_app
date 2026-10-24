@@ -10,10 +10,10 @@ use Illuminate\Support\Str;
 use PhpOffice\PhpWord\Element\Section;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
 use PhpOffice\PhpWord\Shared\Converter;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\SimpleType\JcTable;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LetterWordService
 {
@@ -25,6 +25,9 @@ class LetterWordService
      */
     public function generateWord(LetterTemplate $template): \Symfony\Component\HttpFoundation\StreamedResponse
     {
+        // Enable XML escaping for characters like &, <, > so generated DOCX is not corrupted
+        Settings::setOutputEscapingEnabled(true);
+
         $phpWord = new PhpWord();
 
         // Global font settings
@@ -515,7 +518,12 @@ class LetterWordService
         $table->addRow();
         $table->addCell(2500, ['valign' => 'top'])->addText($key, ['bold' => false], ['spaceAfter' => 20]);
         $table->addCell(400, ['valign' => 'top'])->addText(":", [], ['spaceAfter' => 20]);
-        $table->addCell(5500, ['valign' => 'top'])->addText($value, ['bold' => $boldValue], ['spaceAfter' => 20]);
+
+        $valueCell = $table->addCell(5500, ['valign' => 'top']);
+        $lines = preg_split('/\r\n|\r|\n/', trim($value));
+        foreach ($lines as $line) {
+            $valueCell->addText($line, ['bold' => $boldValue], ['spaceAfter' => 20]);
+        }
     }
 
     /**
